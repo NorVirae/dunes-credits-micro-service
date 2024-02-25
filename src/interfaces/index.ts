@@ -9,7 +9,7 @@ export interface DatabaseConfig {
 export interface IUserRegisterRequestData {
   name: string;
   email: string;
-  passwordHash: string;
+  password: string;
 }
 
 export interface IUserRegisterResponseData {
@@ -18,8 +18,25 @@ export interface IUserRegisterResponseData {
   token?: string;
 }
 
+export interface IUserLoginRequestData {
+  email: string;
+  password: string;
+}
+
+export interface IUserLoginResponseData {
+  email: string;
+  token: string;
+}
+
 export interface IMessageResponse<T> {
   success: boolean;
   data?: T;
   message: string;
+  statusCode?: number;
+}
+
+export interface IPassDatas {
+  oldPassword: string;
+  newPassword: string;
+  userId: string;
 }

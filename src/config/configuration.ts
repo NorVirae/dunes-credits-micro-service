@@ -9,5 +9,9 @@ export default () => {
       dbPass: process.env.DATABASE_PASSWORD,
       dbURI: `mongodb+srv://vyra:${process.env.DATABASE_PASSWORD}@blackhardsserver.qe2hbmy.mongodb.net/credits?retryWrites=true&w=majority`,
     },
+    auth: {
+      hashSecret: process.env.PASSWORD_SALT,
+      jwtSecret: process.env.JWT_SECRET,
+    },
   };
 };

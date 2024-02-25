@@ -6,10 +6,11 @@ import configuration from 'src/config/configuration';
 import * as Joi from 'joi';
 import { AuthModule } from './auth.module';
 import { UserModule } from './user.module';
-import { WalletModule } from './wallet.module';
-import { AuthenticateMiddleware } from 'src/middlewares/authenticate.middleware';
+import { WalletModule } from './credits.module';
 import { UserController } from 'src/controllers/user/user.controller';
 import { MongooseModule } from '@nestjs/mongoose';
+import { APP_GUARD } from '@nestjs/core';
+import { AuthGuard } from 'src/controllers/auth/auth.guard';
 
 @Module({
   imports: [
@@ -53,8 +54,4 @@ import { MongooseModule } from '@nestjs/mongoose';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(AuthenticateMiddleware).forRoutes(UserController);
-  }
-}
+export class AppModule {}

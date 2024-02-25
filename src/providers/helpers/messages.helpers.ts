@@ -7,14 +7,15 @@ import { IMessageResponse, IUserRegisterResponseData } from 'src/interfaces';
 export class MessageHelper {
   constructor(@InjectConnection() private connection: Connection) {}
 
-  SuccessResponse(
+  SuccessResponse<T>(
     message: string,
-    data: IUserRegisterResponseData,
-  ): IMessageResponse<IUserRegisterResponseData> {
-    return { success: true, message: message, data };
+    data: T,
+    statusCode: number = 200,
+  ): IMessageResponse<T> {
+    return { success: true, message: message, data, statusCode };
   }
 
-  ErrorResponse(message: string): IMessageResponse<null> {
-    return { success: false, message: message, data: null };
+  ErrorResponse<T>(message: string, statusCode = 400): IMessageResponse<T> {
+    return { success: false, message: message, data: null, statusCode };
   }
 }

@@ -2,12 +2,12 @@ import { Controller, Get, Post, Req, Res } from '@nestjs/common';
 import { AppService } from '../../providers/services/app.service';
 import { Request, Response } from 'express';
 
-@Controller('auth')
+@Controller('*')
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
-  @Post('login')
-  login(
+  @Post('*')
+  hitPoint(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ): { name: string } {

@@ -1,12 +1,14 @@
 import { Body, Controller, Get, Post, Req, Res } from '@nestjs/common';
 import { AppService } from '../../providers/services/app.service';
-import { Request, Response } from 'express';
 import { AuthService } from 'src/providers/services/auth.service';
 import {
   IMessageResponse,
+  IUserLoginRequestData,
+  IUserLoginResponseData,
   IUserRegisterRequestData,
   IUserRegisterResponseData,
 } from 'src/interfaces';
+import { Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -25,12 +27,67 @@ export class AuthController {
 
   // login route
   @Post('login')
-  login(
-    @Req() request: Request,
+  async login(
+    @Body() userLogin: IUserLoginRequestData,
     @Res({ passthrough: true }) response: Response,
-  ): { name: string } {
-    const responseData = this.authService.login();
-    response.statusCode = 400;
-    return { name: responseData };
+  ): Promise<IMessageResponse<IUserLoginResponseData | null>> {
+    const responseData = await this.authService.login(userLogin);
+    response.statusCode = responseData.statusCode;
+    return responseData;
+  }
+
+  // Forgotten password route
+  @Post('forgotten-password')
+  async forgottenPassword(
+    @Body() userLogin: IUserLoginRequestData,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<IMessageResponse<IUserLoginResponseData | null>> {
+    const responseData = await this.authService.forgottenPassword(userLogin);
+    response.statusCode = responseData.statusCode;
+    return responseData;
+  }
+
+  // Reset password route
+  @Post('reset-password')
+  async resetPassword(
+    @Body() userLogin: IUserLoginRequestData,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<IMessageResponse<IUserLoginResponseData | null>> {
+    const responseData = await this.authService.resetPassword(userLogin);
+    response.statusCode = responseData.statusCode;
+    return responseData;
+  }
+
+  // change password route
+  @Post('change-password')
+  async changePassword(
+    @Body() userLogin: IUserLoginRequestData,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<IMessageResponse<IUserLoginResponseData | null>> {
+    const responseData = await this.authService.changePassword(userLogin);
+    response.statusCode = responseData.statusCode;
+    return responseData;
+  }
+
+  // verify email route
+  @Post('verify-email')
+  async verifyEmail(
+    @Body() userLogin: IUserLoginRequestData,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<IMessageResponse<IUserLoginResponseData | null>> {
+    const responseData = await this.authService.verifyEmail(userLogin);
+    response.statusCode = responseData.statusCode;
+    return responseData;
+  }
+
+  // logout route
+  @Post('logout')
+  async logout(
+    @Body() userLogin: IUserLoginRequestData,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<IMessageResponse<IUserLoginResponseData | null>> {
+    const responseData = await this.authService.logout(userLogin);
+    response.statusCode = responseData.statusCode;
+    return responseData;
   }
 }
