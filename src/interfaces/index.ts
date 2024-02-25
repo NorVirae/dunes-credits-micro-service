@@ -1,5 +1,5 @@
 import { HydratedDocument } from 'mongoose';
-import { User } from 'src/schemas/user.schema';
+import { User } from 'src/models/user.model';
 
 export interface DatabaseConfig {
   host: string;

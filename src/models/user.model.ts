@@ -12,7 +12,16 @@ export class User {
   email: string;
 
   @Prop()
+  resetToken: string;
+
+  @Prop()
   passwordHash: string;
+
+  @Prop()
+  credits: number;
+
+  @Prop({ default: false })
+  emailVerified: boolean;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

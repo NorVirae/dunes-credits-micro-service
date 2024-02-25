@@ -18,12 +18,14 @@ import {
   IUserRegisterRequestData,
   IUserRegisterResponseData,
 } from 'src/interfaces';
-import { User } from 'src/schemas/user.schema';
+import { User } from 'src/models/user.model';
 import { MessageHelper } from '../helpers/messages.helpers';
 import * as bcrypt from 'bcrypt';
 import { response, Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { MailService } from './mail.service';
+import { UserService } from './user.service';
+import { JwtAuthService } from './jwtAuth.service';
 
 @Injectable()
 export class AuthService {
@@ -31,7 +33,9 @@ export class AuthService {
     private configService: ConfigService,
     private messagehelper: MessageHelper,
     private readonly mailService: MailService,
-    private readonly userService: MailService,
+    private readonly jwtAuthService: JwtAuthService,
+
+    private readonly userService: UserService,
 
     private jwtService: JwtService,
     @InjectModel(User.name) private userModel: Model<User>,
@@ -41,183 +45,143 @@ export class AuthService {
   async register(
     createUserData: IUserRegisterRequestData,
   ): Promise<IMessageResponse<IUserRegisterResponseData | null>> {
-    try {
-      const hash = await bcrypt.hash(createUserData.password, 10);
+    const hash = await bcrypt.hash(createUserData.password, 10);
 
-      const createdUser = new this.userModel(createUserData);
-      createdUser.passwordHash = hash;
-      await createdUser.save();
+    const createdUser = new this.userModel(createUserData);
+    createdUser.passwordHash = hash;
+    await createdUser.save();
 
-      return this.messagehelper.SuccessResponse<IUserRegisterResponseData>(
-        'Registration Was successful!',
-        {
-          name: createdUser.name,
-          email: createdUser.email,
-        },
-      );
-    } catch (err) {
-      return this.messagehelper.ErrorResponse<null>(
-        err.message,
-        err.statusCode,
-      );
-    }
+    return this.messagehelper.SuccessResponse<IUserRegisterResponseData>(
+      'Registration Was successful!',
+      {
+        name: createdUser.name,
+        email: createdUser.email,
+      },
+    );
   }
 
   async login(
     userData: IUserLoginRequestData,
   ): Promise<IMessageResponse<IUserLoginResponseData | null>> {
-    try {
-      const user = await this.userModel
-        .findOne({ email: userData.email })
-        .exec();
-      if (!user) throw new Error('User not Registered');
+    const user = await this.userModel.findOne({ email: userData.email }).exec();
+    if (!user) throw new Error('User not Registered');
 
-      const isMatch = await bcrypt.compare(
-        userData.password,
-        user.passwordHash,
-      );
+    const isMatch = await bcrypt.compare(userData.password, user.passwordHash);
 
-      if (!isMatch) throw new UnauthorizedException('Invalid');
-      const payload = { sub: user.id, email: user.email };
-      const token = await this.jwtService.signAsync(payload);
-      return this.messagehelper.SuccessResponse<IUserLoginResponseData>(
-        'Login Success!',
-        {
-          email: user.email,
-          token: token,
-        },
-      );
-    } catch (err) {
-      console.log(err);
-      return this.messagehelper.ErrorResponse<null>('User Login Fail', 400);
-    }
+    if (!isMatch) throw new UnauthorizedException('Invalid');
+    const payload = { sub: user.id, email: user.email };
+    const token = await this.jwtAuthService.generateToken(payload);
+    return this.messagehelper.SuccessResponse<IUserLoginResponseData>(
+      'Login Success!',
+      {
+        email: user.email,
+        token: token,
+      },
+    );
   }
 
   async forgottenPassword(
-    userData: IUserLoginRequestData,
-  ): Promise<IMessageResponse<IUserLoginResponseData | null>> {
-    try {
-      // Find the user by email
-      const user = await this.userService.findOneByEmail(email);
+    email: string,
+  ): Promise<IMessageResponse<boolean | null>> {
+    // Find the user by email
+    const user = await this.userService.findOneByEmail(email);
 
-      if (!user) {
-        throw new BadRequestException('User not found');
-      }
-
-      // Generate a reset token and save it to the user's document
-      const resetToken = await bcrypt.hash(`${user.email}${Date.now()}`, 10);
-      user.resetToken = resetToken;
-      await user.save();
-
-      // Send the reset token to the user's email
-      await this.mailService.sendPasswordResetEmail(user.email, resetToken);
-
-      return { message: 'Password reset email sent successfully' };
-    } catch (error) {
-      console.error(error);
-      throw new BadRequestException('Password reset failed');
+    if (!user) {
+      throw new BadRequestException('User not found');
     }
+
+    // Generate a reset token and save it to the user's document
+    const resetToken = await bcrypt.hash(`${user.email}${Date.now()}`, 10);
+    user.resetToken = resetToken;
+    await this.userService.UpdateUser(user);
+
+    // Send the reset token to the user's email
+    await this.mailService.sendResetPasswordEmail(user.email, resetToken);
+
+    return this.messagehelper.SuccessResponse<boolean>(
+      'Reset Password Email has been sent',
+      true,
+    );
   }
 
   async resetPassword(
-    userData: IUserLoginRequestData,
-  ): Promise<IMessageResponse<IUserLoginResponseData | null>> {
-    try {
-      // Find the user by email and ensure the reset token is valid
-      const user = await this.userService.findOneByEmail(email);
+    email: string, // Assuming you receive the user's email
+    token: string, // Assuming you receive the reset token
+    newPassword: string,
+  ): Promise<boolean> {
+    // Find the user by email and ensure the reset token is valid
+    const user = await this.userService.findOneByEmail(email);
 
-      if (!user || !user.resetToken) {
-        throw new BadRequestException('Invalid reset token');
-      }
-
-      // Check if the provided token matches the stored reset token
-      const isTokenValid = await bcrypt.compare(token, user.resetToken);
-
-      if (!isTokenValid) {
-        throw new BadRequestException('Invalid reset token');
-      }
-
-      // Update the user's password and reset token
-      const newPasswordHash = await bcrypt.hash(newPassword, 10);
-      user.passwordHash = newPasswordHash;
-      user.resetToken = null;
-      await user.save();
-
-      return { message: 'Password reset successful' };
-    } catch (error) {
-      console.error(error);
-      throw new BadRequestException('Password reset failed');
+    if (!user || !user.resetToken) {
+      throw new BadRequestException('Invalid reset token');
     }
+
+    // Check if the provided token matches the stored reset token
+    const isTokenValid = await bcrypt.compare(token, user.resetToken);
+
+    if (!isTokenValid) {
+      throw new BadRequestException('Invalid reset token');
+    }
+
+    // Update the user's password and reset token
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+    user.passwordHash = newPasswordHash;
+    user.resetToken = null;
+    await this.userService.UpdateUser(user);
+
+    return true;
   }
 
   async changePassword(
-    passDatas: IPassDatas,
-  ): Promise<IMessageResponse<IUserLoginResponseData | null>> {
-    try {
-      const user = await this.findOneById(userId);
+    userId: string,
+    oldPassword: string,
+    newPassword: string,
+  ): Promise<boolean> {
+    const user = await this.userService.findOneById(userId);
 
-      if (!user) {
-        throw new Error('User not found');
-      }
-      const isOldPasswordValid = await bcrypt.compare(
-        passDatas.oldPassword,
-        user.passwordHash,
-      );
-
-      if (!isOldPasswordValid) {
-        throw new BadRequestException('Invalid old password');
-      }
-      user.passwordHash = await bcrypt.hash(passDatas.newPassword, 10);
-      await user.save();
-
-      return this.messagehelper.SuccessResponse();
-    } catch (error) {
-      throw new Error(`Error changing password: ${error.message}`);
+    if (!user) {
+      throw new Error('User not found');
     }
+    const isOldPasswordValid = await bcrypt.compare(
+      oldPassword,
+      user.passwordHash,
+    );
+
+    if (!isOldPasswordValid) {
+      throw new BadRequestException('Invalid old password');
+    }
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    await this.userService.UpdateUser(user);
+    return true;
   }
 
-  async verifyEmail(
-    userData: IUserLoginRequestData,
-  ): Promise<IMessageResponse<IUserLoginResponseData | null>> {
-    try {
-      const user = await this.userService.findOneById(userId);
+  async verifyEmail(userId: string): Promise<boolean> {
+    const user = await this.userService.findOneById(userId);
 
-      if (!user) {
-        throw new Error('User not found');
-      }
-
-      user.emailVerified = true;
-      await user.save();
-    } catch (error) {
-      throw new Error(`Error verifying email: ${error.message}`);
+    if (!user) {
+      throw new Error('User not found');
     }
+
+    user.emailVerified = true;
+    await this.userService.UpdateUser(user);
+    return true;
   }
 
-  async logout(
-    userData: IUserLoginRequestData,
-    @Req() request: Request,
-  ): Promise<IMessageResponse<IUserLoginResponseData | null>> {
-    try {
-      // Extract the authentication token from the request, assuming it's stored in headers or cookies
-      const authToken =
-        request.headers.authorization || request.cookies['yourAuthToken'];
+  async logout(@Req() request: Request): Promise<boolean> {
+    // Extract the authentication token from the request, assuming it's stored in headers or cookies
+    const authToken =
+      request.headers.authorization || request.cookies['yourAuthToken'];
 
-      if (!authToken) {
-        throw new BadRequestException('No authentication token found');
-      }
-
-      // Implement your logout logic based on your authentication mechanism
-      // For example, you might revoke the token, remove it from a session store, or perform other cleanup actions
-
-      await this.authService.logoutUser(authToken); // Implement this method in your AuthService
-
-      // Optionally, you may want to clear cookies or perform additional actions based on your authentication strategy.
-
-      return { message: 'Logout successful' };
-    } catch (error) {
-      console.error(error);
-      throw new BadRequestException('Logout failed');
+    if (!authToken) {
+      throw new BadRequestException('No authentication token found');
     }
+
+    // Implement your logout logic based on your authentication mechanism
+    // For example, you might revoke the token, remove it from a session store, or perform other cleanup actions
+    this.jwtAuthService.invalidateToken(authToken);
+    // Optionally, you may want to clear cookies or perform additional actions based on your authentication strategy.
+
+    return true;
   }
 
   async revokeJwtToken(token: string): Promise<void> {

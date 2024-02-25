@@ -1,9 +1,9 @@
 // user.service.ts
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
-import { User } from 'src/schemas/user.schema';
+import { User } from 'src/models/user.model';
 
 @Injectable()
 export class UserService {
@@ -21,9 +21,21 @@ export class UserService {
     return this.userModel.findOne({ verificationToken }).exec();
   }
 
+  async findOneByEmail(email: string): Promise<User | null> {
+    return this.userModel.findOne({ email }).exec();
+  }
+
+  async UpdateUser(userData: User): Promise<boolean> {
+    const result = await this.userModel
+      .updateOne({ email: userData.email }, { userData })
+      .exec();
+    if (!result) throw new BadRequestException('Unable to  Update user');
+    return true;
+  }
+
   async changePassword(userId: string, newPassword: string): Promise<void> {
     try {
-      const user = await this.findOneById(userId);
+      const user = await this.userModel.findById(userId);
 
       if (!user) {
         throw new Error('User not found');
