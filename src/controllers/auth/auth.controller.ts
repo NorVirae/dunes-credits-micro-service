@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Post,
   Req,
   Res,
@@ -131,9 +132,9 @@ export class AuthController {
   }
 
   // verify email route
-  @Post('verify-email')
+  @Get('verify-email')
   async verifyEmail(
-    @Body('email') email: string,
+    @Param('email') email: string,
     @Res({ passthrough: true }) response: Response,
   ): Promise<IMessageResponse<boolean | null>> {
     try {

@@ -23,6 +23,8 @@ export class CreditsController {
     @Body('amount') amount: number,
   ) {
     try {
+      if (!receiverEmail || amount)
+        throw new BadRequestException('Invalid Inputs');
       // Extract the sender's email from the authenticated user
       const senderEmail = request.user.email;
 

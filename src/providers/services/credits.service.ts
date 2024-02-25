@@ -64,7 +64,9 @@ export class CreditsService {
     try {
       // Placeholder: Implement your logic to fetch notifications from the database
       const transactions = await this.transactionModel
-        .find({ user: userEmail })
+        .find({
+          $or: [{ senderEmail: userEmail }, { receiverEmail: userEmail }],
+        })
         .exec();
       return transactions;
     } catch (error) {

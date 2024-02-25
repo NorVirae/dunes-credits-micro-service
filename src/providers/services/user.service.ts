@@ -47,4 +47,13 @@ export class UserService {
       throw new Error(`Error changing password: ${error.message}`);
     }
   }
+
+  async findAllUsers(): Promise<User[]> {
+    const users = await this.userModel.find().exec();
+    return users;
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    await this.userModel.findByIdAndDelete(userId).exec();
+  }
 }
