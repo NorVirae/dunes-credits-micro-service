@@ -8,6 +8,13 @@ import { MessageHelper } from 'src/providers/helpers/messages.helpers';
 import { JwtModule } from '@nestjs/jwt';
 import configuration from 'src/config/configuration';
 import { MailService } from 'src/providers/services/mail.service';
+import { JwtAuthService } from 'src/providers/services/jwtAuth.service';
+import { UserService } from 'src/providers/services/user.service';
+import {
+  InvalidTokenSchema,
+  InvalidTokens,
+} from 'src/models/InvalidTokens.model';
+import { InvalidTokenService } from 'src/providers/services/invalidTokens.service';
 
 @Module({
   imports: [
@@ -15,6 +22,9 @@ import { MailService } from 'src/providers/services/mail.service';
       load: [configuration],
     }),
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+    MongooseModule.forFeature([
+      { name: InvalidTokens.name, schema: InvalidTokenSchema },
+    ]),
 
     JwtModule.registerAsync({
       imports: [
@@ -33,6 +43,13 @@ import { MailService } from 'src/providers/services/mail.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, MessageHelper, MailService],
+  providers: [
+    AuthService,
+    MessageHelper,
+    MailService,
+    JwtAuthService,
+    UserService,
+    InvalidTokenService,
+  ],
 })
 export class AuthModule {}

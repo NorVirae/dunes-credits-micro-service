@@ -7,6 +7,7 @@ import {
   Post,
   Req,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { AppService } from '../../providers/services/app.service';
 import { AuthService } from 'src/providers/services/auth.service';
@@ -19,6 +20,7 @@ import {
 } from 'src/interfaces';
 import { Response, Request } from 'express';
 import { MessageHelper } from 'src/providers/helpers/messages.helpers';
+import { AuthGuard } from './auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -34,14 +36,15 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ): Promise<IMessageResponse<IUserRegisterResponseData | null>> {
     try {
-      if (!userData.email || !userData.name || !userData.password)
+      if (!userData.email || !userData.password)
         throw new BadRequestException('Invalid Inputs');
-      const responseData = this.authService.register(userData);
-      response.statusCode = 400;
+      const responseData = await this.authService.register(userData);
+      response.statusCode = responseData.statusCode;
       return responseData;
     } catch (err) {
-      response.statusCode = err.statusCode;
-      this.messageHelper.ErrorResponse(err.message);
+      console.log(err, 'ERR');
+      response.statusCode = err.statusCode ? err.statusCode : 400;
+      return this.messageHelper.ErrorResponse(err.message);
     }
   }
 
@@ -72,16 +75,17 @@ export class AuthController {
       response.statusCode = responseData.statusCode;
       return responseData;
     } catch (err) {
-      response.statusCode = err.statusCode;
+      response.statusCode = err.statusCode ? err.statusCode : 400;
       return this.messageHelper.ErrorResponse(err.message, err.statusCode);
     }
   }
 
   // Reset password route
+
   @Post('reset-password')
   async resetPassword(
     @Body('email') email: string,
-    @Body('token') token: string,
+    @Body('resetToken') resetToken: string,
     @Body('newPassword') newPassword: string,
 
     @Res({ passthrough: true }) response: Response,
@@ -89,7 +93,7 @@ export class AuthController {
     try {
       const responseData = await this.authService.resetPassword(
         email,
-        token,
+        resetToken,
         newPassword,
       );
       response.statusCode = 201;
@@ -103,15 +107,17 @@ export class AuthController {
     }
   }
 
+  @UseGuards(AuthGuard)
   // change password route
   @Post('change-password')
   async changePassword(
-    @Body('userId') userId: string,
+    @Req() request: Request,
     @Body('oldPassword') oldPassword: string,
     @Body('newPassword') newPassword: string,
     @Res({ passthrough: true }) response: Response,
   ): Promise<IMessageResponse<boolean | null>> {
     try {
+      const userId = request['user'].id;
       if (!userId || !oldPassword || !newPassword) {
         throw new BadRequestException('Invalid Inputs');
       }
@@ -151,16 +157,16 @@ export class AuthController {
   }
 
   // logout route
+  @UseGuards(AuthGuard)
   @Post('logout')
   async logout(
-    @Body() userLogin: IUserLoginRequestData,
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ): Promise<IMessageResponse<boolean | null>> {
     try {
-      const responseData = await this.authService.logout(request);
-      const authToken =
-        request.headers.authorization || request.cookies['yourAuthToken'];
+      const authToken = request['user'].token;
+
+      const responseData = await this.authService.logout(authToken);
       response.statusCode = 201;
       return this.messageHelper.SuccessResponse(
         'Logout Successful!',

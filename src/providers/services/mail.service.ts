@@ -9,12 +9,13 @@ export class MailService {
   constructor() {
     // Create a Nodemailer transporter using your email service provider's SMTP details
     this.transporter = nodemailer.createTransport({
-      host: 'your-smtp-host', // Replace with your SMTP host
+      host: 'smtp.privateemail.com', // Replace with your SMTP host
       port: 587, // Replace with your SMTP port
+      type: 'TLS',
       secure: false, // Set to true if your SMTP server uses SSL
       auth: {
-        user: 'your-email@example.com', // Replace with your email address
-        pass: 'your-email-password', // Replace with your email password
+        user: 'vyra@techsprinthub.com', // Replace with your email address
+        pass: 'Nor25rt', // Replace with your email password
       },
     });
   }
@@ -26,10 +27,10 @@ export class MailService {
     try {
       // Send a verification email using Nodemailer
       await this.transporter.sendMail({
-        from: 'your-email@example.com', // Replace with your email address
+        from: 'vyra@techsprinthub.com', // Replace with your email address
         to,
         subject: 'Account Verification',
-        text: `Click the following link to verify your account: ${verificationLink}`,
+        text: `Click the following link to verify your account: https://credit-sprints.herokuapp.com/verify?token=${verificationLink}`,
       });
 
       console.log(`Verification email sent to ${to}`);
@@ -43,10 +44,10 @@ export class MailService {
     try {
       // Send a reset password email using Nodemailer
       await this.transporter.sendMail({
-        from: 'your-email@example.com', // Replace with your email address
+        from: 'vyra@techsprinthub.com', // Replace with your email address
         to,
         subject: 'Reset Password',
-        text: `Click the following link to reset your password: ${resetLink}`,
+        text: `Click the following link to reset your password: https://credit-sprints.vercel.com/forgotten/?token=${resetLink}`,
       });
 
       console.log(`Reset password email sent to ${to}`);
@@ -71,7 +72,7 @@ export class MailService {
 
       // Send the credit transfer email using Nodemailer
       await this.transporter.sendMail({
-        from: 'your-email@example.com', // Replace with your email address
+        from: 'vyra@techsprinthub.com', // Replace with your email address
         to: receiver,
         subject: 'Credit Transfer Notification',
         html: emailContent,

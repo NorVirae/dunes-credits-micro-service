@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  Post,
   Req,
   Res,
   UseGuards,
@@ -40,18 +41,11 @@ export class UserController {
     }
   }
 
-  @Get('show:id')
-  async showUser(
-    @Param('id') id: string,
-    request: Request,
-    @Res() response: Response,
-  ) {
+  @Get(':id')
+  async showUser(@Param('id') id: string, @Res() response: Response) {
     try {
-      // Extract the user's email from the authenticated user
-      const userEmail = request['user'].email;
-
       // Call the NotificationService to fetch notifications
-      const transactions = await this.userService.findOneByEmail(userEmail);
+      const transactions = await this.userService.findOneById(id);
       response.statusCode = 201;
       return this.messageHelper.SuccessResponse(
         'Retrieval Successful',
@@ -102,7 +96,7 @@ export class UserController {
   }
 
   @UseGuards(AuthGuard)
-  @Get('delete-user')
+  @Post('delete-user')
   async deleteUser(@Req() request: Request) {
     try {
       // Extract the user's email from the authenticated user

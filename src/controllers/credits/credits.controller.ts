@@ -44,10 +44,10 @@ export class CreditsController {
 
   @UseGuards(AuthGuard) // Use JWT authentication guard to protect this route
   @Get('balance')
-  async fetchCreditsBalance(@Req() request: any) {
+  async fetchCreditsBalance(@Req() request: Request) {
     try {
       // Extract the user's email from the authenticated user
-      const userEmail = request.user.email;
+      const userEmail = request['user'].email;
 
       // Call the CreditService to fetch the user's balance
       const balance = await this.creditService.fetchCreditsBalance(userEmail);
@@ -59,10 +59,12 @@ export class CreditsController {
     }
   }
 
-  async fetchNotifications(@Req() request: any) {
+  @UseGuards(AuthGuard) // Use JWT authentication guard to protect this route
+  @Get('transactions')
+  async fetchNotifications(@Req() request: Request) {
     try {
       // Extract the user's email from the authenticated user
-      const userEmail = request.user.email;
+      const userEmail = request['user'].email;
 
       // Call the NotificationService to fetch notifications
       const transactions =

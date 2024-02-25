@@ -10,7 +10,7 @@ export class AppService {
     }
   }
 
-  getHello(): string {
+  Test(): string {
     return 'Server Connected!';
   }
 }

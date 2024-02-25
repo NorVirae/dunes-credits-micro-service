@@ -21,25 +21,23 @@ import {
 import { User } from 'src/models/user.model';
 import { MessageHelper } from '../helpers/messages.helpers';
 import * as bcrypt from 'bcrypt';
-import { response, Request } from 'express';
-import { JwtService } from '@nestjs/jwt';
 import { MailService } from './mail.service';
 import { UserService } from './user.service';
 import { JwtAuthService } from './jwtAuth.service';
+import { InvalidTokens } from 'src/models/InvalidTokens.model';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private configService: ConfigService,
     private messagehelper: MessageHelper,
     private readonly mailService: MailService,
     private readonly jwtAuthService: JwtAuthService,
 
     private readonly userService: UserService,
 
-    private jwtService: JwtService,
     @InjectModel(User.name) private userModel: Model<User>,
-    @InjectModel('RevokedToken') private readonly revokedTokenModel: Model<any>,
+    @InjectModel(InvalidTokens.name)
+    private readonly invalidTokens: Model<InvalidTokens>,
   ) {}
 
   async register(
@@ -167,10 +165,9 @@ export class AuthService {
     return true;
   }
 
-  async logout(@Req() request: Request): Promise<boolean> {
+  async logout(authTok: string): Promise<boolean> {
     // Extract the authentication token from the request, assuming it's stored in headers or cookies
-    const authToken =
-      request.headers.authorization || request.cookies['yourAuthToken'];
+    const authToken = authTok;
 
     if (!authToken) {
       throw new BadRequestException('No authentication token found');
@@ -187,7 +184,7 @@ export class AuthService {
   async revokeJwtToken(token: string): Promise<void> {
     try {
       // Check if the token is already revoked
-      const existingRevocation = await this.revokedTokenModel.findOne({
+      const existingRevocation = await this.invalidTokens.findOne({
         token,
       });
 
@@ -196,7 +193,7 @@ export class AuthService {
       }
 
       // Store the revoked token in the database
-      await this.revokedTokenModel.create({ token });
+      await this.invalidTokens.create({ token });
 
       // Placeholder: Implement any additional cleanup or logic based on your requirements
     } catch (error) {
